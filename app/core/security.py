@@ -3,8 +3,12 @@ from datetime import datetime, timezone
 from jose import jwt, JWTError
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
+from app.core.database import get_db
+from app.repositories.user_repo import UserRepository
+from app.models.user import UserStatus
 
 settings = get_settings()
 _bearer = HTTPBearer()
@@ -22,8 +26,9 @@ def create_access_token(data: dict) -> str:
 
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(_bearer),
+    db: AsyncSession = Depends(get_db)
 ) -> dict:
-    """Decode the JWT and return the payload as a dict."""
+    """Decode the JWT, verify the user in DB, and return the payload."""
     try:
         payload = jwt.decode(
             credentials.credentials,
@@ -37,7 +42,16 @@ async def get_current_user(
         # Safely convert sub to int
         if not isinstance(user_id_raw, str) or not user_id_raw.isdigit():
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
-        return {"user_id": int(user_id_raw), "role": role}
+        
+        user_id = int(user_id_raw)
+        repo = UserRepository(db)
+        user = await repo.get_by_id(user_id)
+        if not user:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
+        if user.status == UserStatus.inactive:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="User account is inactive")
+        
+        return {"user_id": user_id, "role": user.role.value if hasattr(user.role, 'value') else user.role}
     except JWTError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
 

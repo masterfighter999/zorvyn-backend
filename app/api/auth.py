@@ -44,6 +44,9 @@ async def login(body: LoginRequest, db: AsyncSession = Depends(get_db)):
             await db.commit()
             await db.refresh(user)
     
+    if user.status == UserStatus.inactive:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="User account is inactive")
+
     # Issue JWT token
     role_value = user.role.value if hasattr(user.role, 'value') else user.role
     access_token = create_access_token({"sub": str(user.id), "role": role_value, "name": user.name})
