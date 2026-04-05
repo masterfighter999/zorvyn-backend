@@ -109,9 +109,23 @@ flowchart LR
 
 ---
 
+## 🌍 Live Deployment
+The system is deployed and accessible via the following URLs:
+- **Backend API**: [https://zorvyn-backend-zc6t.onrender.com](https://zorvyn-backend-zc6t.onrender.com)
+- **Interactive Documentation**: [https://zorvyn-backend-zc6t.onrender.com/docs](https://zorvyn-backend-zc6t.onrender.com/docs)
+- **Frontend Dashboard**: zorvyn-backend-liart.vercel.app
+
+---
+
 ## 📖 API Documentation
 
-Once the server is running, visit:
+The API documentation is available both locally and in production:
+
+### 🌐 Live Docs (Render)
+- **Swagger UI**: [https://zorvyn-backend-zc6t.onrender.com/docs](https://zorvyn-backend-zc6t.onrender.com/docs)
+- **ReDoc**: [https://zorvyn-backend-zc6t.onrender.com/redoc](https://zorvyn-backend-zc6t.onrender.com/redoc)
+
+### 💻 Local Docs (Dev)
 - **Swagger UI**: `http://localhost:8000/docs`
 - **ReDoc**: `http://localhost:8000/redoc`
 
