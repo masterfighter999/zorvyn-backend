@@ -93,6 +93,10 @@ def create_app() -> FastAPI:
     app.include_router(dashboard.router)
     app.include_router(admin.router)
 
+    @app.get("/", tags=["General"])
+    async def root():
+        return {"message": "Zorvyn Finance API is running. Visit /docs for documentation."}
+
     @app.get("/health", tags=["Health"])
     async def health():
         return {"status": "ok"}
