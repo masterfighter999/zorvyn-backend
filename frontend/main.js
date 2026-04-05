@@ -1,6 +1,7 @@
 document.addEventListener('DOMContentLoaded', async () => {
     // 1. API Config & Authentication
-    const API_BASE = 'http://localhost:8000';
+    // Points to the Render backend in production, or localhost in development
+    const API_BASE = window.ZORVYN_API_URL || 'http://localhost:8000';
     let token = sessionStorage.getItem('zorvyn_token');
     let currentUserRole = 'viewer';
 

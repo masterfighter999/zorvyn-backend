@@ -302,6 +302,14 @@ button:focus-visible {
     font-weight: bold;
 }
 
+.arrow-income {
+    color: var(--positive);
+}
+
+.arrow-expense {
+    color: orange;
+}
+
 .highlight-card .arrow-btn {
     background-color: var(--bg-main);
     color: var(--text-primary);
@@ -326,7 +334,12 @@ button:focus-visible {
     color: var(--positive);
 }
 
-.highlight-card .card-change.negative {
+.card-change.negative {
+    color: orange;
+}
+
+.highlight-card .card-change.negative,
+.highlight-card .card-change.positive {
     color: rgba(20, 20, 22, 0.7);
 }
 
