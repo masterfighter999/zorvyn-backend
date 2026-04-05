@@ -1,0 +1,392 @@
+Finance Data Processing & Access-Control Backend (FastAPI Architecture)
+1. Product Vision
+
+Build a backend platform for a finance dashboard that:
+
+manages financial transactions
+enforces role-based access control
+exposes summary analytics
+guarantees reliable write processing
+prevents duplicate writes
+supports asynchronous event pipelines
+remains resilient under dependency failures
+tracks user activity and system access
+
+The backend should demonstrate production-grade backend engineering patterns while remaining clean and maintainable.
+
+2. Technology Stack
+Core Backend
+
+FastAPI
+
+Database
+
+PostgreSQL
+
+Cache / Idempotency / Locks
+
+Redis
+
+Event Streaming
+
+Apache Kafka
+
+ORM
+
+SQLAlchemy (async)
+
+Migrations
+
+Alembic
+
+Validation
+
+Pydantic
+
+Circuit Breakers
+
+pybreaker / aiobreaker
+
+3. System Architecture
+Client
+ ↓
+FastAPI Router Layer
+ ↓
+RBAC Middleware
+ ↓
+Validation Layer
+ ↓
+Service Layer
+ ├── Redis Layer
+ │    ├── Idempotency
+ │    ├── Cache
+ │    ├── Locks
+ │    └── Circuit Breaker
+ │
+ ├── DB Layer
+ │    ├── Records
+ │    ├── Users
+ │    ├── Logs
+ │    └── Outbox
+ │
+ └── Kafka Producer
+      └── Circuit Breaker
+           ↓
+        Outbox Worker
+           ↓
+        Kafka Topics
+           ├── Audit
+           ├── Analytics
+           └── DLQ
+4. Folder Structure
+app/
+├── api/
+│   ├── users.py
+│   ├── records.py
+│   ├── dashboard.py
+│
+├── core/
+│   ├── config.py
+│   ├── security.py
+│   ├── circuit_breaker.py
+│
+├── models/
+│   ├── user.py
+│   ├── record.py
+│   ├── outbox.py
+│   ├── activity_log.py
+│   ├── access_log.py
+│
+├── schemas/
+│   ├── user.py
+│   ├── record.py
+│
+├── services/
+│   ├── user_service.py
+│   ├── record_service.py
+│   ├── dashboard_service.py
+│
+├── repositories/
+│   ├── user_repo.py
+│   ├── record_repo.py
+│
+├── kafka/
+│   ├── producer.py
+│   ├── consumer.py
+│   ├── dlq.py
+│
+├── redis/
+│   ├── cache.py
+│   ├── idempotency.py
+│   ├── locks.py
+│
+├── middleware/
+│   ├── rbac.py
+│   ├── logging.py
+│
+├── workers/
+│   ├── outbox_publisher.py
+│
+└── main.py
+
+This structure strongly signals separation of concerns 🧩
+
+5. Core Domain Modules
+5.1 User Management
+Roles
+Viewer
+Analyst
+Admin
+User Schema
+id
+name
+email
+role
+status
+created_at
+updated_at
+APIs
+POST /users
+GET /users
+PATCH /users/{id}
+DELETE /users/{id}
+RBAC Rules
+Action	Viewer	Analyst	Admin
+View users	No	No	Yes
+Create user	No	No	Yes
+Modify user	No	No	Yes
+5.2 Financial Records
+Schema
+id
+amount
+type
+category
+date
+description
+created_by
+updated_by
+created_at
+updated_at
+APIs
+POST /records
+GET /records
+PATCH /records/{id}
+DELETE /records/{id}
+Filters
+GET /records?type=income&category=salary&from=2026-01-01&to=2026-02-01
+5.3 Dashboard Summary APIs
+APIs
+GET /dashboard/summary
+GET /dashboard/trends
+GET /dashboard/categories
+GET /dashboard/recent
+Summary Response
+{
+  "total_income": 120000,
+  "total_expense": 75000,
+  "net_balance": 45000
+}
+6. Redis Design
+6.1 Idempotency
+Header Required
+Idempotency-Key
+Redis Key
+idempotency:{key}
+Flow
+Request arrives
+↓
+Check Redis
+↓
+Exists → return stored response
+↓
+Not exists → process request
+↓
+Store result
+6.2 Cache Aside Pattern
+Cached APIs
+dashboard summary
+trends
+categories
+Redis Keys
+dashboard:summary:{user_id}
+dashboard:trends:{month}
+Flow
+Check cache
+↓
+Miss → DB query
+↓
+Store cache
+↓
+Return response
+Invalidation
+
+On record mutation:
+
+delete dashboard:summary:{user_id}
+6.3 Distributed Locks / Mutex
+
+Used for concurrent financial updates.
+
+Redis Lock Key
+lock:record:{id}
+Flow
+Acquire lock
+Process transaction
+Release lock
+
+This prevents race conditions.
+
+7. Kafka Event Design
+Topics
+finance.records
+finance.audit
+finance.analytics
+finance.dlq
+Produced Events
+{
+  "event_type": "RECORD_CREATED",
+  "record_id": 101
+}
+8. Transactional Outbox Pattern
+DB Transaction
+
+Same transaction writes:
+
+financial record
+outbox event
+Outbox Table
+id
+aggregate_type
+aggregate_id
+event_type
+payload
+status
+created_at
+processed_at
+Worker
+
+Separate async worker:
+
+poll outbox
+publish Kafka
+mark delivered
+
+This guarantees consistency.
+
+9. Dead Letter Queue
+
+If Kafka consumer fails repeatedly:
+
+move to:
+
+finance.dlq
+DLQ Payload
+{
+  "event": "...",
+  "retry_count": 3,
+  "failure_reason": "consumer timeout"
+}
+10. Circuit Breakers
+Redis Circuit Breaker
+
+If Redis unavailable:
+
+fallback to DB.
+
+Behavior
+cache fail → DB query
+Kafka Circuit Breaker
+
+If Kafka unavailable:
+
+outbox retains event.
+
+Behavior
+publish fail → retry later
+11. Logging Design
+11.1 Activity Logs
+
+Track user actions.
+
+Schema
+id
+user_id
+action
+resource_type
+resource_id
+metadata
+timestamp
+Examples
+CREATE_RECORD
+UPDATE_RECORD
+DELETE_RECORD
+ROLE_CHANGED
+11.2 Access Logs
+
+Track request metadata.
+
+Schema
+id
+user_id
+endpoint
+method
+status_code
+duration_ms
+timestamp
+12. Validation
+
+FastAPI gives strong built-in validation.
+
+Example
+amount > 0
+type in ["income", "expense"]
+13. Error Strategy
+Standard Response
+{
+  "error": "ValidationError",
+  "message": "Amount must be positive"
+}
+Status Codes
+Code	Meaning
+200	success
+201	created
+400	bad request
+403	forbidden
+404	not found
+409	idempotency conflict
+14. Security
+Simplified Authentication
+
+JWT token mock is enough.
+
+FastAPI Dependency Injection for RBAC
+
+Very clean:
+
+Depends(require_role("admin"))
+
+This looks excellent in review.
+
+15. What Should Actually Be Implemented First (Important)
+Phase 1 (Must Work)
+
+✅ CRUD
+✅ RBAC
+✅ validation
+✅ dashboard APIs
+
+Phase 2 (Strong Differentiator)
+
+✅ Redis idempotency
+✅ cache aside
+
+Phase 3 (High Impact)
+
+✅ outbox
+✅ Kafka audit events
+
+Phase 4 (If time remains)
+
+✅ circuit breaker
+✅ DLQ
+✅ locks
