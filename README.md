@@ -113,7 +113,7 @@ flowchart LR
 The system is deployed and accessible via the following URLs:
 - **Backend API**: [https://zorvyn-backend-zc6t.onrender.com](https://zorvyn-backend-zc6t.onrender.com)
 - **Interactive Documentation**: [https://zorvyn-backend-zc6t.onrender.com/docs](https://zorvyn-backend-zc6t.onrender.com/docs)
-- **Frontend Dashboard**: zorvyn-backend-liart.vercel.app
+- **Frontend Dashboard**: https://zorvyn-backend-liart.vercel.app
 
 ---
 
