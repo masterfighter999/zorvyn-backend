@@ -278,7 +278,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             return d.period;
         });
         const incomeValues = trendsData.map(d => parseFloat(d.income));
-        const expenseValues = trendsData.map(d => parseFloat(d.expense));
+        const expenseValues = trendsData.map(d => -Math.abs(parseFloat(d.expense)));
         const netValues = trendsData.map(d => parseFloat(d.income) - parseFloat(d.expense));
 
         // Income gradient
@@ -331,7 +331,21 @@ document.addEventListener('DOMContentLoaded', async () => {
                     legend: { 
                         display: true,
                         labels: { color: 'rgba(255, 255, 255, 0.7)' }
-                    } 
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed.y !== null) {
+                                    label += formatCurrency(Math.abs(context.parsed.y));
+                                }
+                                return label;
+                            }
+                        }
+                    }
                 },
                 scales: {
                     y: { 
