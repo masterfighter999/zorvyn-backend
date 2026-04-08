@@ -71,20 +71,21 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
 
-    # ── CORS ──
+    # ── Idempotency middleware ──
+    app.add_middleware(IdempotencyMiddleware)
+
+    # ── Access logging middleware ──
+    app.add_middleware(AccessLogMiddleware)
+
+    # ── CORS (Outer-most) ──
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.CORS_ORIGINS,
         allow_credentials=False,
         allow_methods=["*"],
         allow_headers=["*"],
+        expose_headers=["X-Idempotent-Replay"],
     )
-
-    # ── Idempotency middleware ──
-    app.add_middleware(IdempotencyMiddleware)
-
-    # ── Access logging middleware ──
-    app.add_middleware(AccessLogMiddleware)
 
     # ── Routers ──
     app.include_router(auth.router)
