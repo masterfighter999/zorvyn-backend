@@ -129,8 +129,15 @@ alembic upgrade head
 ```
 
 ### 4. Run Application
+
+#### Backend
 ```bash
 uvicorn app.main:app --reload
+```
+
+#### Frontend
+```bash
+python -m http.server 3030 --directory frontend
 ```
 
 ---
