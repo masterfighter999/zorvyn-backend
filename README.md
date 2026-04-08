@@ -1,6 +1,6 @@
 # Zorvyn Finance Backend
 
-A production-grade, resilient backend for a finance dashboard system. Built with **FastAPI**, **SQLAlchemy (Async)**, **PostgreSQL**, **Valkey (Redis)**, and **Apache Kafka**.
+A production-grade, resilient financial dashboard system. Built with **FastAPI**, **SQLAlchemy (Async)**, **PostgreSQL**, **Valkey (Redis)**, and **Apache Kafka**.
 
 ## 🚀 Key Features
 
@@ -10,67 +10,45 @@ The system strictly enforces permissions across three defined roles:
 - **Analyst**: Access to dashboard summaries, trends, and detailed record viewing.
 - **Admin**: Full management access, including CRUD for financial records and user management.
 
-### 2. Financial Records Management
-- Complete CRUD for transactions (Amount, Type, Category, Date, Notes).
-- Advanced filtering by type, category, and date range.
-- **Precision First**: Uses `Decimal` types for all monetary calculations to avoid floating-point errors.
+### 2. Advanced Financial Visualization
+- **Dynamic Charts**: Interactive transaction trends and net income summaries using **Chart.js**.
+- **Income vs. Expense**: Visual clarity with expenses represented on the negative y-axis for intuitive financial tracking.
+- **Aggregated Summaries**: Real-time calculation of total income, expenses, and net balance with trend indicators.
 
-### 3. High-Performance Dashboard APIs
+### 3. High-Performance APIs & Caching
 Aggregated data endpoints optimized with **Valkey (Redis) caching**:
-- **Summary**: Total income, expenses, and net balance.
-- **Trends**: Monthly income/expense aggregates.
-- **Categories**: Breakdown of spending by category.
-- **Recent Activity**: Latest transactions.
+- **Cache-Aside Strategy**: Ensures sub-millisecond response times for dashboard summaries while maintaining data consistency.
+- **Precision First**: Uses `Decimal` types for all monetary calculations to eliminate floating-point errors.
 
 ### 4. Enterprise-Grade Resilience
-- **Transactional Outbox Pattern**: Ensures database state and Kafka events are always consistent.
+- **Transactional Outbox Pattern**: Guarantees consistency between database state and Kafka event publishing.
+- **Circuit Breakers**: Protects the system from cascading failures using **Pybreaker** for Kafka and Redis integrations.
 - **Idempotency Middleware**: Prevents duplicate transactions for a single `Idempotency-Key`.
-- **Distributed Locking**: Uses Valkey-based locks to prevent concurrent modification of the same record.
-- **Circuit Breakers**: Protects against cascading failures from external services (Kafka/Redis).
-- **Dead Letter Queue (DLQ)**: Automatically routes failed Kafka events for admin inspection.
+- **Distributed Locking**: Uses Valkey-based locks to prevent concurrent race conditions on record modifications.
+- **Dead Letter Queue (DLQ)**: Automatically routes failed Kafka events for manual inspection and recovery.
 
 ---
 
 ## 🛠 Tech Stack
 
-- **Framework**: FastAPI (Python 3.12+)
-- **Database**: PostgreSQL (Aiven)
-- **Caching**: Valkey (Aiven - Redis drop-in)
-- **Event Streaming**: Apache Kafka (Aiven)
-- **ORM**: SQLAlchemy 2.0 (Async)
-- **Migrations**: Alembic
+### Backend
+- **Framework**: [FastAPI](https://fastapi.tiangolo.com/) (Python 3.12+)
+- **Database**: [PostgreSQL](https://www.postgresql.org/) (Hosted on Aiven)
+- **ORM**: [SQLAlchemy 2.0](https://www.sqlalchemy.org/) (Asyncio)
+- **Caching & Locks**: [Valkey](https://valkey.io/) (Redis-compatible, Aiven)
+- **Event Streaming**: [Apache Kafka](https://kafka.apache.org/) (Aiven)
+- **Migrations**: [Alembic](https://alembic.sqlalchemy.org/)
+- **Validation**: [Pydantic v2](https://docs.pydantic.dev/)
+
+### Frontend
+- **Core**: Vanilla HTML5, CSS3, JavaScript (ES6+)
+- **Charts**: [Chart.js](https://www.chartjs.org/)
+- **Typography**: [Google Fonts (Outfit)](https://fonts.google.com/specimen/Outfit)
+- **Design**: Premium Dark Mode with glassmorphism and micro-animations.
 
 ---
 
-## 🧩 System Components & Roles
-
-### 🔴 Valkey (Redis) - The "Fast-Access" Layer
-Valkey handles high-speed operations that require sub-millisecond latency:
-- **Dashboard Caching**: Stores expensive-to-calculate financial aggregates (totals, trends) to ensure the frontend loads instantly. Uses a *Cache-Aside* invalidation strategy.
-- **Distributed Locking**: Prevents race conditions by ensuring only one process can modify a specific record at a time using `SET NX PX`.
-- **Idempotency**: Prevents duplicate transactions by storing and verifying `Idempotency-Key` headers for 24 hours.
-
-### 📨 Apache Kafka - The "Reliable" Layer
-Kafka serves as the backbone for all asynchronous communication and event-driven logic:
-- **Transactional Outbox**: Decouples the database state from the message bus, ensuring that every DB change is guaranteed to be published eventually.
-- **Event Streaming**: Distributes `records` and `audit` data to downstream consumers via dedicated topics (`TOPIC_RECORDS`, `TOPIC_AUDIT`).
-- **Resilience (DLQ)**: Automatically routes events that fail processing after retries to a **Dead Letter Queue (DLQ)** for manual inspection.
-
----
-
-## 📋 Infrastructure Requirements
-To run this system, the following infrastructure is required:
-
-| Component | Minimum Version | Function |
-| :--- | :--- | :--- |
-| **Python** | 3.12+ | Core runtime |
-| **PostgreSQL** | 15+ | Relational data & Outbox storage |
-| **Valkey / Redis**| 7.2+ | Distributed state & Caching |
-| **Apache Kafka** | 3.6+ | Event streaming & Durable messaging |
-
----
-
-## 📐 Architecture & Dataflow
+## 🧩 System Architecture
 
 ```mermaid
 flowchart LR
@@ -98,8 +76,8 @@ flowchart LR
         Worker -->|"④ Publish pending\n   outbox events"| Kafka
         Kafka --> TopicRecords
         Kafka --> TopicAudit
-        TopicRecords -.->|"Processing failure"| DLQ
-        TopicAudit -.->|"Processing failure"| DLQ
+        TopicRecords -.->|"Circuit Breaker / Failure"| DLQ
+        TopicAudit -.->|"Circuit Breaker / Failure"| DLQ
     end
 
     Client -->|"REST API call\n+ Idempotency-Key"| API
@@ -110,33 +88,25 @@ flowchart LR
 ---
 
 ## 🌍 Live Deployment
-The system is deployed and accessible via the following URLs:
-- **Backend API**: [https://zorvyn-backend-zc6t.onrender.com](https://zorvyn-backend-zc6t.onrender.com)
-- **Interactive Documentation**: [https://zorvyn-backend-zc6t.onrender.com/docs](https://zorvyn-backend-zc6t.onrender.com/docs)
-- **Frontend Dashboard**: https://zorvyn-backend-liart.vercel.app
+
+| Component | URL |
+| :--- | :--- |
+| **Backend API** | [https://zorvyn-backend-zc6t.onrender.com](https://zorvyn-backend-zc6t.onrender.com) |
+| **API Docs (Swagger)** | [https://zorvyn-backend-zc6t.onrender.com/docs](https://zorvyn-backend-zc6t.onrender.com/docs) |
+| **Frontend Dashboard** | [https://zorvyn-backend-liart.vercel.app](https://zorvyn-backend-liart.vercel.app) |
 
 ---
 
-## 📖 API Documentation
+## 📖 API Documentation Summary
 
-The API documentation is available both locally and in production:
-
-### 🌐 Live Docs (Render)
-- **Swagger UI**: [https://zorvyn-backend-zc6t.onrender.com/docs](https://zorvyn-backend-zc6t.onrender.com/docs)
-- **ReDoc**: [https://zorvyn-backend-zc6t.onrender.com/redoc](https://zorvyn-backend-zc6t.onrender.com/redoc)
-
-### 💻 Local Docs (Dev)
-- **Swagger UI**: `http://localhost:8000/docs`
-- **ReDoc**: `http://localhost:8000/redoc`
-
-### Core Enpoints Summary
 | Method | Endpoint | Role Required | Description |
 | :--- | :--- | :--- | :--- |
 | `POST` | `/auth/token` | None | Dev endpoint to issue mock JWTs |
-| `GET` | `/dashboard/summary` | Viewer+ | Aggregated totals |
+| `GET` | `/dashboard/summary` | Viewer+ | Aggregated totals and trends |
 | `GET` | `/records` | Viewer+ | List/Filter transactions |
-| `POST` | `/records` | Admin | Create new record |
+| `POST` | `/records` | Admin | Create new record (Idempotency req.) |
 | `PATCH` | `/records/{id}` | Admin | Update record |
+| `DELETE` | `/records/{id}` | Admin | Delete record |
 | `GET` | `/admin/dlq` | Admin | Monitor failed events |
 
 ---
